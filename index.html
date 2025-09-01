@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Progression Année de Travail</title>
+<style>
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #6a11cb, #2575fc);
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    flex-direction: column;
+    text-align: center;
+  }
+
+  h1 {
+    font-size: 2.5em;
+    margin-bottom: 1em;
+    text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+  }
+
+  .progress {
+    width: 80%;
+    max-width: 500px;
+    height: 35px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 20px;
+    overflow: hidden;
+    margin-bottom: 1.2em;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.3);
+  }
+
+  .progress-bar {
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, #34d399, #06b6d4);
+    border-radius: 20px;
+    transition: width 0.7s ease-in-out;
+    box-shadow: 0 0 15px #00ffcc, 0 0 10px #06b6d4;
+  }
+
+  #percent {
+    font-size: 1.7em;
+    font-weight: 700;
+    text-shadow: 1px 1px 4px rgba(0,0,0,0.4);
+    margin: 0;
+  }
+
+  @media (max-width: 500px){
+    h1 { font-size: 2em; }
+    #percent { font-size: 1.4em; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Quand on a fini on peut sortir ?</h1>
+<div class="progress">
+  <div class="progress-bar" id="progress-bar"></div>
+</div>
+<p id="percent">0%</p>
+
+<script>
+const workDays = [
+  "2025-09-01","2025-09-02","2025-09-03","2025-09-04","2025-09-05","2025-09-08","2025-09-09",
+  "2025-09-10","2025-09-11","2025-09-12","2025-09-15","2025-09-16","2025-09-17","2025-09-18","2025-09-19",
+  "2025-09-22","2025-09-23","2025-09-24","2025-09-25","2025-09-26","2025-09-29","2025-09-30","2025-10-01","2025-10-02","2025-10-03",
+  "2025-11-03","2025-11-04","2025-11-05","2025-11-06","2025-11-07",
+  "2025-11-12","2025-11-13","2025-11-14","2025-11-17","2025-11-18","2025-11-19","2025-11-20","2025-11-21","2025-11-24","2025-11-25","2025-11-26","2025-11-27","2025-11-28",
+  "2025-12-01","2025-12-02","2025-12-03","2025-12-04","2025-12-05","2025-12-08","2025-12-09","2025-12-10","2025-12-11","2025-12-12",
+  "2026-01-12","2026-01-13","2026-01-14","2026-01-15","2026-01-16","2026-01-19","2026-01-20","2026-01-21","2026-01-22","2026-01-23",
+  "2026-01-26","2026-01-27","2026-01-28","2026-01-29","2026-01-30","2026-02-02","2026-02-03","2026-02-04","2026-02-05","2026-02-06",
+  "2026-02-09","2026-02-10","2026-02-11","2026-02-12","2026-02-13","2026-02-14",
+  "2026-03-09","2026-03-10","2026-03-11","2026-03-12","2026-03-13","2026-03-16","2026-03-17","2026-03-18","2026-03-19","2026-03-20",
+  "2026-03-23","2026-03-24","2026-03-25","2026-03-26","2026-03-27","2026-03-30","2026-03-31","2026-04-01","2026-04-02","2026-04-03"
+];
+
+const periods = [
+  { start: 8*60, end: 12*60 },       // 8h - 12h
+  { start: 13*60+30, end: 17*60+30 } // 13h30 - 17h30
+];
+const MIN_PER_DAY = 7*60; // 7 heures par jour
+
+function localMidnight(ymd){
+  const [y,m,d] = ymd.split('-').map(Number);
+  return new Date(y, m-1, d, 0,0,0,0);
+}
+
+function computeDoneMinutes(now){
+  let minutes = 0;
+  const N = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes(),0,0);
+
+  for(const ymd of workDays){
+    const dayStart = localMidnight(ymd);
+    const dayEnd = new Date(dayStart.getTime() + 24*60*60*1000 -1);
+
+    if(N.getTime() >= dayEnd.getTime()){
+      minutes += MIN_PER_DAY; // jour passé complètement
+      continue;
+    }
+    if(N.getTime() < dayStart.getTime()){
+      break; // futur
+    }
+
+    // jour courant en cours
+    for(const p of periods){
+      const ps = new Date(dayStart.getFullYear(), dayStart.getMonth(), dayStart.getDate(), Math.floor(p.start/60), p.start%60);
+      const pe = new Date(dayStart.getFullYear(), dayStart.getMonth(), dayStart.getDate(), Math.floor(p.end/60), p.end%60);
+
+      if(N.getTime() >= pe.getTime()){
+        minutes += (p.end - p.start);
+      } else if(N.getTime() > ps.getTime() && N.getTime() < pe.getTime()){
+        minutes += Math.floor((N.getTime()-ps.getTime())/60000);
+      }
+    }
+    break; // jour courant traité
+  }
+  return minutes;
+}
+
+function update(){
+  const doneMin = computeDoneMinutes(new Date());
+  const percent = Math.ceil((doneMin / (workDays.length*MIN_PER_DAY)) * 10000)/100;
+
+  document.getElementById("progress-bar").style.width = percent.toFixed(2)+"%";
+  document.getElementById("percent").innerText = percent.toFixed(2)+"%";
+}
+
+update();
+setInterval(update, 60000); // mise à jour chaque minute
+</script>
+
+</body>
+</html>
